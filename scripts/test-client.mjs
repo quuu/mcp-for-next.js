@@ -21,12 +21,13 @@ async function main() {
     }
   );
 
-  function connectToServer(origin) {
+  async function connectToServer(origin) {
     const transport = new SSEClientTransport(new URL(`${origin}/sse`));
-
     console.log("Connecting to", origin);
-    client.connect(transport);
+    await client.connect(transport);
   }
+
+  // connectToServer("https://mcp-for-next-js-beta.vercel.app/");
   await Promise.all(
     origins.map(async (origin) => {
       await connectToServer(origin);
