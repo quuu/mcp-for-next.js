@@ -4,10 +4,10 @@ export class Gateway {
   private mcpClients: MCPClient[] = [];
   constructor() {}
 
-  async connectToServers(servers: string[]) {
+  async connectToServers(servers: string[], appendSse = true) {
     for (const server of servers) {
       const mcpClient = new MCPClient();
-      await mcpClient.connect(server);
+      await mcpClient.connect(`${server}${appendSse ? "/sse" : ""}`);
       this.mcpClients.push(mcpClient);
     }
   }

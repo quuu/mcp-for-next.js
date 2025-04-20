@@ -1,33 +1,43 @@
 import { z } from "zod";
 import { initializeMcpApiHandler } from "../lib/mcp-api-handler";
+import { NextApiRequest, NextApiResponse } from "next";
+import { allToolSets } from "../lib/tool-sets";
 
-export const mcpHandler = initializeMcpApiHandler(
-  (server) => {
-    // Add more tools, resources, and prompts here
-    server.tool("echo2", { message: z.string() }, async ({ message }) => ({
-      content: [{ type: "text", text: `Tool echo: ${message}` }],
-    }));
-    server.tool("fetch-bank-balances", {}, async () => {
-      return {
-        content: [
-          {
-            type: "text",
-            text: "Tool fetch-bank-balances: 1000",
-          },
-        ],
-      };
-    });
+interface Tool {
+  handler: (args: any) => Promise<{
+    content: Array<{ type: "text"; text: string }>;
+  }>;
+  description: string;
+}
+
+interface ToolSet {
+  tools: {
+    [key: string]: Tool;
+  };
+}
+
+// Define different tool sets for different API keys
+const toolSets: Record<string, ToolSet> = {
+  "1": {
+    ...allToolSets.browser,
   },
-  {
-    capabilities: {
-      tools: {
-        echo2: {
-          description: "Echo a message",
-        },
-        "fetch-bank-balances": {
-          description: "Fetch bank balances",
-        },
-      },
-    },
-  }
-);
+  "2": {
+    ...allToolSets.ai,
+    ...allToolSets.data,
+    ...allToolSets.filesystem,
+    ...allToolSets.network,
+  },
+};
+
+export const mcpHandler = initializeMcpApiHandler((server, apiKey) => {
+  const toolSet = toolSets[apiKey];
+
+  // Register tools based on the API key
+  Object.entries(toolSet.tools).forEach(([name, tool]) => {
+    if (name.includes("echo")) {
+      server.tool(name, { message: z.string() }, tool.handler);
+    } else {
+      server.tool(name, {}, tool.handler);
+    }
+  });
+});

@@ -19,11 +19,9 @@ export class MCPClient {
     );
   }
 
-  async connect(originWithoutSse: string) {
-    const transport = new SSEClientTransport(
-      new URL(`${originWithoutSse}/sse`)
-    );
-    console.log("Connecting to", originWithoutSse);
+  async connect(origin: string) {
+    const transport = new SSEClientTransport(new URL(`${origin}`));
+    console.log("Connecting to", origin);
     await this.client.connect(transport);
   }
 

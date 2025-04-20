@@ -16,7 +16,7 @@ interface SerializedRequest {
 }
 
 export function initializeMcpApiHandler(
-  initializeServer: (server: McpServer) => void,
+  initializeServer: (server: McpServer, apiKey: string) => void,
   serverOptions: ServerOptions = {}
 ) {
   const redisUrl = process.env.REDIS_URL || process.env.KV_URL;
@@ -54,7 +54,9 @@ export function initializeMcpApiHandler(
         },
         serverOptions
       );
-      initializeServer(server);
+
+      const apiKey = url.searchParams.get("api_key") || "";
+      initializeServer(server, apiKey);
 
       servers.push(server);
 
