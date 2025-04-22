@@ -40,9 +40,6 @@ export function initializeMcpApiHandler(
 
   let servers: McpServer[] = [];
 
-<<<<<<< HEAD
-  return async function mcpApiHandler(req: Request, res: ServerResponse) {
-=======
   let statelessServer: McpServer;
   const statelessTransport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
@@ -52,7 +49,6 @@ export function initializeMcpApiHandler(
     req: IncomingMessage,
     res: ServerResponse
   ) {
->>>>>>> 2dd5c40 (Stateless MCP (#7))
     await redisPromise;
     const url = new URL(req.url || "", "https://example.com");
     if (url.pathname === "/mcp") {
