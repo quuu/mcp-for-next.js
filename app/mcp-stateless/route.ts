@@ -124,6 +124,7 @@ class ServerManager {
   private isConnected: boolean = false;
   private serverInitPromise: Promise<void> | null = null;
   private serverInitialized = false;
+  private lastResetTime: number = 0;
 
   private constructor() {}
 
@@ -134,12 +135,90 @@ class ServerManager {
     return ServerManager.instance;
   }
 
-  public async getServerAndTransport(sessionId?: string): Promise<{
+  // Add a method to completely reset the ServerManager instance
+  public static resetInstance(): void {
+    if (ServerManager.instance) {
+      console.log(
+        `[${new Date().toISOString()}] Completely resetting ServerManager instance`
+      );
+
+      // Close existing connections if possible
+      (async () => {
+        try {
+          const instance = ServerManager.instance;
+          if (instance && instance.transport) {
+            await instance.transport.close();
+          }
+          if (instance && instance.server) {
+            await instance.server.close();
+          }
+        } catch (error) {
+          console.error(
+            `[${new Date().toISOString()}] Error during reset cleanup:`,
+            error
+          );
+        }
+      })();
+
+      // Force a complete reset
+      ServerManager.instance = null;
+    }
+  }
+
+  // Use this method to handle "Server already initialized" errors
+  public async forceReinitialize(): Promise<void> {
+    console.log(`[${new Date().toISOString()}] Force reinitializing server`);
+
+    // Clean up existing resources
+    if (this.transport) {
+      try {
+        await this.transport.close();
+      } catch (error) {
+        console.error(
+          `[${new Date().toISOString()}] Error closing transport:`,
+          error
+        );
+      }
+    }
+
+    if (this.server) {
+      try {
+        await this.server.close();
+      } catch (error) {
+        console.error(
+          `[${new Date().toISOString()}] Error closing server:`,
+          error
+        );
+      }
+    }
+
+    // Reset state
+    this.server = null;
+    this.transport = null;
+    this.isConnected = false;
+    this.serverInitPromise = null;
+    this.serverInitialized = false;
+    this.lastResetTime = Date.now();
+
+    // Re-initialize
+    this.serverInitPromise = this.initializeServer();
+    await this.serverInitPromise;
+  }
+
+  public async getServerAndTransport(
+    sessionId?: string,
+    forceReset: boolean = false
+  ): Promise<{
     server: McpServer;
     transport: StreamableHTTPServerTransport;
     isNewSession: boolean;
     newSessionId?: string;
   }> {
+    // Check if we need to force a reset (client indicates with a special header)
+    if (forceReset) {
+      await this.forceReinitialize();
+    }
+
     // Update activity timestamp
     let isNewSession = false;
     let newSessionId: string | undefined = undefined;
@@ -586,11 +665,30 @@ function getRequestSessionId(req: Request): string | undefined {
   return undefined;
 }
 
+// Check if client is requesting a force reset
+function isForceResetRequested(req: Request): boolean {
+  return (
+    req.headers.get("x-mcp-force-reset") === "true" ||
+    req.headers.get("x-mcp-force-reset") === "1" ||
+    new URL(req.url).searchParams.get("force_reset") === "true"
+  );
+}
+
 export async function POST(req: Request) {
   console.log(`[${new Date().toISOString()}] Starting POST request`);
 
   // Extract session ID using utility
   const clientProvidedSessionId = getRequestSessionId(req);
+
+  // Check if force reset is requested
+  const forceReset = isForceResetRequested(req);
+  if (forceReset) {
+    console.log(
+      `[${new Date().toISOString()}] Force reset requested by client`
+    );
+    // Completely reset the server manager
+    ServerManager.resetInstance();
+  }
 
   // Log all headers for debugging
   console.log(`[${new Date().toISOString()}] Request headers:`);
@@ -603,7 +701,7 @@ export async function POST(req: Request) {
   try {
     const manager = ServerManager.getInstance();
     const { server, transport, isNewSession, newSessionId } =
-      await manager.getServerAndTransport(clientProvidedSessionId);
+      await manager.getServerAndTransport(clientProvidedSessionId, forceReset);
     console.log(
       `[${new Date().toISOString()}] Server pre-initialized successfully`
     );
@@ -744,7 +842,10 @@ export async function POST(req: Request) {
 
         // Pass sessionId when getting server and transport
         const { server, transport, isNewSession, newSessionId } =
-          await manager.getServerAndTransport(clientProvidedSessionId);
+          await manager.getServerAndTransport(
+            clientProvidedSessionId,
+            forceReset
+          );
 
         // Verify we have a valid server
         if (!server || !transport) {

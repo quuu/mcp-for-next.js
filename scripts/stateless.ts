@@ -69,6 +69,9 @@ function printHelp(): void {
     "  force-new-session          - Force a completely new session by clearing all cached state"
   );
   console.log(
+    "  force-reset-server         - Force the server to reset its state completely"
+  );
+  console.log(
     "  random-session             - Create a completely random new session ID and connect with it"
   );
   console.log("  debug-session [on|off]     - Toggle session debugging output");
@@ -122,6 +125,10 @@ function commandLoop(): void {
 
         case "force-new-session":
           await forceCompletelyNewSession();
+          break;
+
+        case "force-reset-server":
+          await connectWithForceReset();
           break;
 
         case "random-session":
@@ -844,28 +851,19 @@ async function listTools(): Promise<void> {
 async function forceCompletelyNewSession(): Promise<void> {
   console.log("Forcing completely new session with aggressive cleanup...");
 
-  // Disconnect if connected
-  if (client || transport) {
-    try {
-      if (transport) {
-        await transport.close();
-        transport = null;
-      }
-      client = null;
-    } catch (error) {
-      console.error("Error during disconnect:", error);
-    }
+  // Use the force reset connection instead of manual cleanup
+  await connectWithForceReset();
+}
+
+// Add a function to connect with force reset flag
+async function connectWithForceReset(): Promise<void> {
+  if (client) {
+    await disconnect();
   }
 
-  // Clear session ID state
-  sessionId = undefined;
-  logSession("SessionId cleared");
-
-  // Wait a moment to let any pending operations complete
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  // Reconnect with explicit transport creation
-  console.log("Creating fresh connection with no session state...");
+  console.log(
+    "Connecting with force_reset flag to ensure clean server state..."
+  );
 
   try {
     // Create a new client with fresh state
@@ -878,14 +876,37 @@ async function forceCompletelyNewSession(): Promise<void> {
       console.error("\x1b[31mClient error:", error, "\x1b[0m");
     };
 
-    // Create a completely random session ID to bypass any SDK caching
-    const randomSessionId = generateRandomUuid();
-    console.log(`Using random session ID for transport: ${randomSessionId}`);
+    // Create a URL with the force_reset parameter
+    const url = new URL(serverUrl);
+    url.searchParams.set("force_reset", "true");
 
-    // Create transport with the random session ID
-    transport = new StreamableHTTPClientTransport(new URL(serverUrl), {
+    // Create transport with a new random session ID
+    const randomSessionId = generateRandomUuid();
+    console.log(`Using random session ID for reset: ${randomSessionId}`);
+
+    // Create a transport that adds headers to requests
+    // Since headers isn't directly supported in options, we'll modify the URL
+    transport = new StreamableHTTPClientTransport(url, {
       sessionId: randomSessionId,
     });
+
+    // Add a hook to add force-reset header to all requests
+    // @ts-ignore - Accessing internal property for compatibility
+    const originalFetch = transport._fetch;
+    // @ts-ignore - Adding custom fetch wrapper
+    transport._fetch = async (input: RequestInfo, init?: RequestInit) => {
+      // Clone init to avoid modifying the original
+      const newInit = init ? { ...init } : {};
+
+      // Add our headers
+      newInit.headers = {
+        ...newInit.headers,
+        "x-mcp-force-reset": "true",
+      };
+
+      // Call original fetch with modified init
+      return originalFetch(input, newInit);
+    };
 
     // Set up notification handlers
     client.setNotificationHandler(
@@ -931,11 +952,14 @@ async function forceCompletelyNewSession(): Promise<void> {
     // Connect the client
     await client.connect(transport);
 
-    // Get the new session ID
+    // Update our session ID
     sessionId = transport.sessionId;
-    console.log("Successfully created brand new session with ID:", sessionId);
+    console.log(
+      "Successfully connected with clean server state. Session ID:",
+      sessionId
+    );
   } catch (error) {
-    console.error("Failed to create new session:", error);
+    console.error("Failed to connect with force reset:", error);
     client = null;
     transport = null;
   }
