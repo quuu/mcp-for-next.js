@@ -1,8 +1,11 @@
 import { z } from "zod";
 import { initializeMcpApiHandler } from "../lib/mcp-api-handler";
-
+import { registerTodoistTools } from "@/lib/todoist";
+import { registerExaTools } from "@/lib/exa/registerTools";
 export const mcpHandler = initializeMcpApiHandler(
   (server) => {
+    registerTodoistTools(server);
+    registerExaTools(server);
     // Add more tools, resources, and prompts here
     server.tool("echo2", { message: z.string() }, async ({ message }) => ({
       content: [{ type: "text", text: `Tool echo: ${message}` }],

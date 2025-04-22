@@ -39,7 +39,7 @@ export function initializeMcpApiHandler(
 
   let servers: McpServer[] = [];
 
-  return async function mcpApiHandler(req: Request, res: ServerResponse) {
+  return async function mcpApiHandler(req: Request, res: ServerResponse, id?: string) {
     await redisPromise;
     const url = new URL(req.url || "", "https://example.com");
     if (url.pathname === "/sse") {
