@@ -687,6 +687,41 @@ export async function POST(req: Request) {
           }, id: ${parsedBody?.id}`
         );
       } catch (error) {
+        console.error(`[${new Date().toISOString()}] JSON parse error:`, error);
+
+        // If a session ID was provided, mark it as problematic in Redis
+        if (clientProvidedSessionId) {
+          try {
+            console.log(
+              `[${new Date().toISOString()}] Cleaning up problematic session: ${clientProvidedSessionId}`
+            );
+            const sessionStore = new RedisSessionStore();
+
+            // Option 1: Mark the session as problematic but keep it
+            await sessionStore.storeSession(clientProvidedSessionId, {
+              status: "error",
+              lastError: "JSON parse error",
+              timestamp: new Date().toISOString(),
+              shouldReset: true,
+            });
+
+            // Option 2: Delete the session completely (uncomment to use)
+            const redis = await getRedisClient();
+            if (redis) {
+              await redis.del(`mcp:session:${clientProvidedSessionId}`);
+              console.log(
+                `[${new Date().toISOString()}] Deleted problematic session: ${clientProvidedSessionId}`
+              );
+            }
+          } catch (sessionError) {
+            console.error(
+              `[${new Date().toISOString()}] Error cleaning up session:`,
+              sessionError
+            );
+          }
+        }
+
+        // Return 400 with a special field to notify client to reset its session
         res.writeHead(400);
         res.end(
           JSON.stringify({
@@ -695,6 +730,7 @@ export async function POST(req: Request) {
               code: -32700,
               message: "Parse error",
               data: "Invalid JSON",
+              __reset_session: true, // Special field to tell client to reset session
             },
             id: null,
           })
@@ -715,6 +751,28 @@ export async function POST(req: Request) {
           console.error(
             `[${new Date().toISOString()}] Server or transport not available`
           );
+
+          // If a session ID was provided, mark it as problematic
+          if (clientProvidedSessionId) {
+            try {
+              console.log(
+                `[${new Date().toISOString()}] Marking problematic session due to server unavailability: ${clientProvidedSessionId}`
+              );
+              const sessionStore = new RedisSessionStore();
+              await sessionStore.storeSession(clientProvidedSessionId, {
+                status: "error",
+                lastError: "Server unavailable",
+                timestamp: new Date().toISOString(),
+                shouldReset: true,
+              });
+            } catch (sessionError) {
+              console.error(
+                `[${new Date().toISOString()}] Error marking problematic session:`,
+                sessionError
+              );
+            }
+          }
+
           res.writeHead(500);
           res.end(
             JSON.stringify({
@@ -722,6 +780,7 @@ export async function POST(req: Request) {
               error: {
                 code: -32000,
                 message: "Server error: Transport or server not available",
+                __reset_session: true, // Special field to tell client to reset session
               },
               id: parsedBody?.id || null,
             })
