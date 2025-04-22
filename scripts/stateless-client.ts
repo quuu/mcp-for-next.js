@@ -28,9 +28,9 @@ let notificationCount = 0;
 // Global client and transport for interactive commands
 let client: Client | null = null;
 let transport: StreamableHTTPClientTransport | null = null;
-// let serverUrl = "http://localhost:3000/";
-let serverUrl = "https://mcp-on-vercel.vercel.app/mcp";
-// let serverUrl = "https://mcp-for-next-js-git-m-qu-pro.vercel.app/mcp";
+let serverUrl = "http://localhost:3000/mcp";
+// let serverUrl = "https://mcp-on-vercel.vercel.app/mcp";
+// let serverUrl = "https://mcp-for-next-js-beta.vercel.app/mcp";
 // let serverUrl = "https://mcp-for-next-js-git-m-qu-pro.vercel.app/sse";
 let notificationsToolLastEventId: string | undefined = undefined;
 let sessionId: string | undefined = undefined;
