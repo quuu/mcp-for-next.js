@@ -45,10 +45,7 @@ export function initializeMcpApiHandler(
     sessionIdGenerator: undefined,
   });
 
-  return async function mcpApiHandler(
-    req: IncomingMessage,
-    res: ServerResponse
-  ) {
+  return async function mcpApiHandler(req: Request, res: ServerResponse) {
     await redisPromise;
     const url = new URL(req.url || "", "https://example.com");
     if (url.pathname === "/mcp") {
@@ -94,7 +91,14 @@ export function initializeMcpApiHandler(
         initializeServer(statelessServer);
         await statelessServer.connect(statelessTransport);
       }
-      await statelessTransport.handleRequest(req, res);
+
+      const incomingMessage = createFakeIncomingMessage({
+        method: req.method,
+        url: req.url,
+        headers: Object.fromEntries(req.headers.entries()),
+        body: req.body,
+      });
+      await statelessTransport.handleRequest(incomingMessage, res);
     } else if (url.pathname === "/sse") {
       console.log("Got new SSE connection");
 
