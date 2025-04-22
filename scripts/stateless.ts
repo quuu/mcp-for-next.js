@@ -459,50 +459,83 @@ async function makeRequestWithSessionCheck<T, U>(
 
     return handleResult(result);
   } catch (error) {
-    // Check if error indicates session expiration or not found
-    if (
-      error instanceof Error &&
-      (error.message.includes("Server not initialized") ||
-        error.message.includes("Session not found") ||
-        error.message.includes("Server already initialized"))
-    ) {
-      // Customize the message based on the error
-      if (error.message.includes("Server already initialized")) {
-        console.log(
-          "Server reports it's already initialized. Continuing with current session..."
+    // Check for reset_session flag in error response
+    if (error instanceof Error) {
+      const errorText = error.message;
+      try {
+        // Try to parse the error message to extract JSON
+        const match = errorText.match(
+          /Error POSTing to endpoint \(HTTP \d+\): (.*)/
         );
-        try {
-          // Try the request again as-is
-          console.log("Retrying request with current session...");
-          const newResult = await requestFn();
-          return handleResult(newResult);
-        } catch (retryError) {
-          // If retry fails, try with a fresh session
+        if (match && match[1]) {
+          const errorJson = JSON.parse(match[1]);
+
+          // Check if the error contains the reset_session flag
+          if (errorJson && errorJson.error && errorJson.error.__reset_session) {
+            console.log("\n[!] Server requested session reset due to error");
+            console.log("Creating a new random session and reconnecting...");
+
+            // Force a completely new session
+            await forceCompletelyNewSession();
+
+            // Retry the request with the new session
+            console.log("Retrying request with new session ID:", sessionId);
+            try {
+              const newResult = await requestFn();
+              return handleResult(newResult);
+            } catch (retryError) {
+              console.error("Retry failed after session reset:", retryError);
+              throw retryError;
+            }
+          }
+        }
+      } catch (parseError) {
+        // Ignore JSON parsing errors in the error message
+      }
+
+      // Check if error indicates session expiration or not found
+      if (
+        error.message.includes("Server not initialized") ||
+        error.message.includes("Session not found") ||
+        error.message.includes("Server already initialized")
+      ) {
+        // Customize the message based on the error
+        if (error.message.includes("Server already initialized")) {
           console.log(
-            "Retry failed. Attempting to reconnect with a new session..."
+            "Server reports it's already initialized. Continuing with current session..."
           );
-          sessionId = undefined;
+          try {
+            // Try the request again as-is
+            console.log("Retrying request with current session...");
+            const newResult = await requestFn();
+            return handleResult(newResult);
+          } catch (retryError) {
+            // If retry fails, try with a completely new random session
+            console.log(
+              "Retry failed. Creating a completely new random session..."
+            );
+            await forceCompletelyNewSession();
+            console.log("Retrying request with new session ID:", sessionId);
+            const newResult = await requestFn();
+            return handleResult(newResult);
+          }
+        } else {
+          console.log(
+            "Session expired or not found. Attempting to reconnect with a new session..."
+          );
+          sessionId = undefined; // Clear session ID to get a fresh one
           await reconnect();
+        }
+
+        // Retry the request
+        try {
           console.log("Retrying request with new session ID:", sessionId);
           const newResult = await requestFn();
           return handleResult(newResult);
+        } catch (retryError) {
+          console.error("Retry failed with error:", retryError);
+          throw retryError; // If retry fails, propagate the error
         }
-      } else {
-        console.log(
-          "Session expired or not found. Attempting to reconnect with a new session..."
-        );
-        sessionId = undefined; // Clear session ID to get a fresh one
-        await reconnect();
-      }
-
-      // Retry the request
-      try {
-        console.log("Retrying request with new session ID:", sessionId);
-        const newResult = await requestFn();
-        return handleResult(newResult);
-      } catch (retryError) {
-        console.error("Retry failed with error:", retryError);
-        throw retryError; // If retry fails, propagate the error
       }
     }
 
