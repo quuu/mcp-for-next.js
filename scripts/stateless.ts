@@ -28,8 +28,8 @@ let notificationCount = 0;
 // Global client and transport for interactive commands
 let client: Client | null = null;
 let transport: StreamableHTTPClientTransport | null = null;
-// let serverUrl = "http://localhost:3000/mcp-stateless";
-let serverUrl = "https://mcp-for-next-js-beta.vercel.app/mcp-stateless";
+let serverUrl = "http://localhost:3000/mcp";
+// let serverUrl = "https://mcp-for-next-js-beta.vercel.app/mcp-stateless";
 let notificationsToolLastEventId: string | undefined = undefined;
 let sessionId: string | undefined = undefined;
 
@@ -78,10 +78,6 @@ function printHelp(): void {
   console.log("  list-tools                 - List available tools");
   console.log(
     "  call-tool <name> [args]    - Call a tool with optional JSON arguments"
-  );
-  console.log("  greet [name]               - Call the greet tool");
-  console.log(
-    "  multi-greet [name]         - Call the multi-greet tool with notifications"
   );
   console.log(
     "  start-notifications [interval] [count] - Start periodic notifications"
@@ -162,21 +158,15 @@ function commandLoop(): void {
             let toolArgs = {};
             if (args.length > 2) {
               try {
+                console.log(args.slice(2).join(" "));
                 toolArgs = JSON.parse(args.slice(2).join(" "));
+                console.log("toolArgs", toolArgs);
               } catch {
                 console.log("Invalid JSON arguments. Using empty args.");
               }
             }
             await callTool(toolName, toolArgs);
           }
-          break;
-
-        case "greet":
-          await callGreetTool(args[1] || "MCP User");
-          break;
-
-        case "multi-greet":
-          await callMultiGreetTool(args[1] || "MCP User");
           break;
 
         case "start-notifications": {
@@ -562,26 +552,16 @@ async function callTool(
   try {
     await makeRequestWithSessionCheck(
       async () => {
-        const request: CallToolRequest = {
-          method: "tools/call",
-          params: {
-            name,
-            arguments: args,
-          },
-        };
-
-        console.log(`Calling tool '${name}' with args:`, args);
-        const onLastEventIdUpdate = (event: string) => {
-          notificationsToolLastEventId = event;
-        };
-        return await client!.request(request, CallToolResultSchema, {
-          resumptionToken: notificationsToolLastEventId,
-          onresumptiontoken: onLastEventIdUpdate,
+        return await client?.callTool({
+          name,
+          arguments: args,
         });
       },
       (result) => {
         console.log("Tool result:");
-        result.content.forEach((item) => {
+        const results = result?.content as any[];
+
+        results.forEach((item) => {
           if (item.type === "text") {
             console.log(`  ${item.text}`);
           } else {
@@ -593,15 +573,6 @@ async function callTool(
   } catch (error) {
     console.log(`Error calling tool ${name}: ${error}`);
   }
-}
-
-async function callGreetTool(name: string): Promise<void> {
-  await callTool("greet", { name });
-}
-
-async function callMultiGreetTool(name: string): Promise<void> {
-  console.log("Calling multi-greet tool with notifications...");
-  await callTool("multi-greet", { name });
 }
 
 async function startNotifications(
