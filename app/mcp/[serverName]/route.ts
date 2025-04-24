@@ -3,12 +3,13 @@ import { mcpHandler } from "@/app/mcp";
 
 export const maxDuration = 60;
 
-const handler = (
+const handler = async (
   req: Request,
-  { params }: { params: { serverName: string } }
+  { params }: { params: Promise<{ serverName: string }> }
 ) => {
+  const { serverName } = await params;
   return createServerResponseAdapter(req.signal, (res) => {
-    mcpHandler(req, res, params.serverName);
+    mcpHandler(req, res, serverName);
   });
 };
 
