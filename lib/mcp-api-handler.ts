@@ -48,12 +48,12 @@ export function initializeMcpApiHandler(
   const statelessTransport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
   });
-  return async function mcpApiHandler(req: Request, res: ServerResponse) {
+  return async function mcpApiHandler(
+    req: Request,
+    res: ServerResponse,
+    serverName: string = ""
+  ) {
     await redisPromise;
-
-    const searchParams = new URL(req.url || "").searchParams;
-    const serverName = searchParams.get("serverName") || "";
-    console.log("serverName", serverName);
 
     const url = new URL(req.url || "", "https://example.com");
     if (url.pathname === "/mcp") {
