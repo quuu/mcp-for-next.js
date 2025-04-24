@@ -16,8 +16,12 @@ interface SerializedRequest {
   headers: IncomingHttpHeaders;
 }
 
+type Options = {
+  serverName: string;
+};
+
 export function initializeMcpApiHandler(
-  initializeServer: (server: McpServer) => void,
+  initializeServer: (server: McpServer, serverOptions: Options) => void,
   serverOptions: ServerOptions = {}
 ) {
   const redisUrl = process.env.REDIS_URL || process.env.KV_URL;
@@ -46,6 +50,10 @@ export function initializeMcpApiHandler(
   });
   return async function mcpApiHandler(req: Request, res: ServerResponse) {
     await redisPromise;
+
+    const searchParams = new URL(req.url || "").searchParams;
+    const serverName = searchParams.get("serverName") || "";
+
     const url = new URL(req.url || "", "https://example.com");
     if (url.pathname === "/mcp") {
       if (req.method === "GET") {
@@ -87,7 +95,7 @@ export function initializeMcpApiHandler(
           serverOptions
         );
 
-        initializeServer(statelessServer);
+        initializeServer(statelessServer, { serverName });
         await statelessServer.connect(statelessTransport);
       }
 
@@ -121,7 +129,7 @@ export function initializeMcpApiHandler(
         },
         serverOptions
       );
-      initializeServer(server);
+      initializeServer(server, { serverName });
 
       servers.push(server);
 
