@@ -38,7 +38,7 @@ export const mcpHandler = initializeMcpApiHandler(
   },
   {
     capabilities: {
-      // tools: {
+      tools: {},
       //   echo2: {
       //     description: "Echo a message",
       //   },

@@ -2,9 +2,9 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
 const origin = process.argv[2] || "https://mcp-on-vercel.vercel.app";
-
+const url = `${origin}/mcp?serverName=todoist`;
 async function main() {
-  const transport = new StreamableHTTPClientTransport(new URL(`${origin}/mcp`));
+  const transport = new StreamableHTTPClientTransport(new URL(url));
 
   const client = new Client(
     {
