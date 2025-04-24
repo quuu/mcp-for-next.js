@@ -42,12 +42,9 @@ export function initializeMcpApiHandler(
   });
   const redisPromise = Promise.all([redis.connect(), redisPublisher.connect()]);
 
-  let servers: McpServer[] = [];
+  let servers: Record<string, McpServer> = {};
 
-  let statelessServer: McpServer;
-  const statelessTransport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: undefined,
-  });
+  let transports: Record<string, StreamableHTTPServerTransport> = {};
   return async function mcpApiHandler(
     req: Request,
     res: ServerResponse,
@@ -87,8 +84,8 @@ export function initializeMcpApiHandler(
       }
       console.log("Got new MCP connection", req.url, req.method);
 
-      if (!statelessServer) {
-        statelessServer = new McpServer(
+      if (!servers[serverName]) {
+        servers[serverName] = new McpServer(
           {
             name: "mcp-typescript server on vercel",
             version: "0.1.0",
@@ -96,8 +93,13 @@ export function initializeMcpApiHandler(
           serverOptions
         );
 
-        initializeServer(statelessServer, { serverName });
-        await statelessServer.connect(statelessTransport);
+        initializeServer(servers[serverName], { serverName });
+        if (!transports[serverName]) {
+          transports[serverName] = new StreamableHTTPServerTransport({
+            sessionIdGenerator: undefined,
+          });
+        }
+        await servers[serverName].connect(transports[serverName]);
       }
 
       // Parse the request body
@@ -117,7 +119,7 @@ export function initializeMcpApiHandler(
         headers: Object.fromEntries(req.headers),
         body: bodyContent,
       });
-      await statelessTransport.handleRequest(incomingRequest, res);
+      await transports[serverName].handleRequest(incomingRequest, res);
     } else if (url.pathname === "/sse") {
       console.log("Got new SSE connection");
 
@@ -132,11 +134,11 @@ export function initializeMcpApiHandler(
       );
       initializeServer(server, { serverName });
 
-      servers.push(server);
+      servers[serverName] = server;
 
       server.server.onclose = () => {
         console.log("SSE connection closed");
-        servers = servers.filter((s) => s !== server);
+        delete servers[serverName];
       };
 
       let logs: {
