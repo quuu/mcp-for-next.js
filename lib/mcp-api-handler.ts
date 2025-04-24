@@ -53,6 +53,7 @@ export function initializeMcpApiHandler(
 
     const searchParams = new URL(req.url || "").searchParams;
     const serverName = searchParams.get("serverName") || "";
+    console.log("serverName", serverName);
 
     const url = new URL(req.url || "", "https://example.com");
     if (url.pathname === "/mcp") {

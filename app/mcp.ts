@@ -18,6 +18,7 @@ const possibleServers: Record<string, (server: McpServer) => void> = {
 
 export const mcpHandler = initializeMcpApiHandler(
   (server, serverOptions) => {
+    console.log(serverOptions);
     const registerServer = possibleServers[serverOptions.serverName];
 
     if (!registerServer) {
