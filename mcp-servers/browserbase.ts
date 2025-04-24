@@ -152,6 +152,7 @@ export function registerBrowserbaseTools(server: McpServer) {
   // Register tools
   server.tool(
     "browserbase_create_session",
+    "A tool to create a new browser session for automated web interactions",
     {
       sessionId: z.string().optional().describe("Optional session ID to use"),
     },
@@ -198,6 +199,7 @@ export function registerBrowserbaseTools(server: McpServer) {
 
   server.tool(
     "browserbase_navigate",
+    "A tool to navigate to a specific URL in a browser session",
     {
       url: z.string().url().describe("URL to navigate to"),
       sessionId: z.string().optional().describe("Optional session ID to use"),
@@ -247,6 +249,7 @@ export function registerBrowserbaseTools(server: McpServer) {
 
   server.tool(
     "browserbase_screenshot",
+    "A tool to take a screenshot of the current browser page",
     {
       sessionId: z.string().optional().describe("Optional session ID to use"),
       name: z.string().optional().describe("Name for the screenshot"),
@@ -314,6 +317,7 @@ export function registerBrowserbaseTools(server: McpServer) {
 
   server.tool(
     "browserbase_click",
+    "A tool to click on a specific element in the browser page",
     {
       selector: z.string().describe("CSS selector for element to click"),
       sessionId: z.string().optional().describe("Optional session ID to use"),
@@ -365,6 +369,7 @@ export function registerBrowserbaseTools(server: McpServer) {
 
   server.tool(
     "browserbase_fill",
+    "A tool to fill a form field with text in the browser page",
     {
       selector: z.string().describe("CSS selector for input field"),
       value: z.string().describe("Value to fill"),
@@ -418,6 +423,7 @@ export function registerBrowserbaseTools(server: McpServer) {
 
   server.tool(
     "browserbase_get_text",
+    "A tool to extract all readable text content from the current browser page",
     {
       sessionId: z.string().optional().describe("Optional session ID to use"),
     },
@@ -491,6 +497,7 @@ export function registerBrowserbaseTools(server: McpServer) {
 
   server.tool(
     "browserbase_get_json",
+    "A tool to extract JSON data from the current browser page",
     {
       selector: z
         .string()

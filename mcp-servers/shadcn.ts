@@ -452,34 +452,40 @@ function searchComponentsByQuery(query: string): ComponentInfo[] {
  */
 export function registerShadcnTools(server: McpServer) {
   // List components tool
-  server.tool("list_shadcn_components", {}, async (args, extra) => {
-    try {
-      await ensureComponentsListLoaded();
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(componentsListCache, null, 2),
-          },
-        ],
-      };
-    } catch (error) {
-      handleAxiosError(error, "Failed to list components");
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: "Failed to list components",
-          },
-        ],
-        isError: true,
-      };
+  server.tool(
+    "list_shadcn_components",
+    "A tool to retrieve a list of all available shadcn/ui components with basic information",
+    {},
+    async (args, extra) => {
+      try {
+        await ensureComponentsListLoaded();
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(componentsListCache, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        handleAxiosError(error, "Failed to list components");
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: "Failed to list components",
+            },
+          ],
+          isError: true,
+        };
+      }
     }
-  });
+  );
 
   // Get component details tool
   server.tool(
     "get_component_details",
+    "A tool to get detailed information about a specific shadcn/ui component including installation instructions, usage examples, and API reference",
     {
       componentName: z
         .string()
@@ -539,6 +545,7 @@ export function registerShadcnTools(server: McpServer) {
   // Get component examples tool
   server.tool(
     "get_component_examples",
+    "A tool to retrieve code examples for a specific shadcn/ui component showing various implementations and use cases",
     {
       componentName: z
         .string()
@@ -581,6 +588,7 @@ export function registerShadcnTools(server: McpServer) {
   // Search components tool
   server.tool(
     "search_components",
+    "A tool to search for shadcn/ui components matching a query string in their name or description",
     {
       query: z.string().describe("Search query to find relevant components"),
     },

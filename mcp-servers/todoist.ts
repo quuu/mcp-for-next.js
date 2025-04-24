@@ -17,6 +17,7 @@ export function registerTodoistTools(server: McpServer) {
   // Create task tool
   server.tool(
     "todoist_create_task",
+    "A tool to create a new task in Todoist with customizable content, description, due date, and priority",
     {
       content: z.string().describe("The content/title of the task"),
       description: z
@@ -74,6 +75,7 @@ export function registerTodoistTools(server: McpServer) {
   // Get tasks tool
   server.tool(
     "todoist_get_tasks",
+    "A tool to retrieve and filter Todoist tasks by project, due date, priority, and other criteria",
     {
       project_id: z
         .string()
@@ -167,6 +169,7 @@ export function registerTodoistTools(server: McpServer) {
   // Update task tool
   server.tool(
     "todoist_update_task",
+    "A tool to update an existing Todoist task by name, modifying its content, description, due date, or priority",
     {
       task_name: z
         .string()
@@ -265,6 +268,7 @@ export function registerTodoistTools(server: McpServer) {
   // Delete task tool
   server.tool(
     "todoist_delete_task",
+    "A tool to delete a Todoist task by searching for its name",
     {
       task_name: z
         .string()
@@ -320,6 +324,7 @@ export function registerTodoistTools(server: McpServer) {
   // Complete task tool
   server.tool(
     "todoist_complete_task",
+    "A tool to mark a Todoist task as complete by searching for its name",
     {
       task_name: z
         .string()

@@ -545,6 +545,7 @@ const thinkingServer = new SequentialThinkingServer();
 export function registerClearThoughtTools(server: McpServer) {
   server.tool(
     "sequentialthinking",
+    "A tool for step-by-step sequential thinking to solve complex problems through structured thought chains",
     {
       thought: z.string().describe("Your current thinking step"),
       nextThoughtNeeded: z
@@ -583,6 +584,7 @@ export function registerClearThoughtTools(server: McpServer) {
 
   server.tool(
     "mentalmodel",
+    "A tool to apply various mental models to problem-solving situations",
     {
       modelName: z
         .enum([
@@ -613,6 +615,7 @@ export function registerClearThoughtTools(server: McpServer) {
 
   server.tool(
     "debuggingapproach",
+    "A tool to apply systematic debugging approaches to technical issues",
     {
       approachName: z
         .enum([

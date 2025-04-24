@@ -71,6 +71,7 @@ async function fetchStories(type: string = "top"): Promise<Story[]> {
 export function registerHackerNewsTools(server: McpServer) {
   server.tool(
     "get_stories",
+    "A tool to fetch top stories from Hacker News with filtering options by type and limiting results",
     {
       type: z
         .enum(["top", "new", "ask", "show", "jobs"])

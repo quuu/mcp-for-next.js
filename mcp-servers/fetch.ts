@@ -135,6 +135,7 @@ async function fetchUrl(
 export function registerFetchTools(server: McpServer) {
   server.tool(
     "fetch",
+    "A tool to fetch and extract content from any URL, converting HTML pages to readable markdown",
     {
       url: z.string().url().describe("The URL to fetch content from"),
       maxLength: z
