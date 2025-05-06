@@ -18,12 +18,14 @@ interface SerializedRequest {
 
 export function initializeMcpApiHandler(
   initializeServer: (server: McpServer) => void,
-  serverOptions: ServerOptions = {}
+  serverOptions: ServerOptions = {},
+  config: {
+    redisUrl?: string;
+    streamableHttpEndpoint?: string;
+    sseEndpoint?: string;
+  } = {}
 ) {
-  const redisUrl = process.env.REDIS_URL || process.env.KV_URL;
-  if (!redisUrl) {
-    throw new Error("REDIS_URL environment variable is not set");
-  }
+  const { redisUrl, streamableHttpEndpoint, sseEndpoint } = config;
   const redis = createClient({
     url: redisUrl,
   });
@@ -47,7 +49,7 @@ export function initializeMcpApiHandler(
   return async function mcpApiHandler(req: Request, res: ServerResponse) {
     await redisPromise;
     const url = new URL(req.url || "", "https://example.com");
-    if (url.pathname === "/mcp") {
+    if (url.pathname === streamableHttpEndpoint) {
       if (req.method === "GET") {
         console.log("Received GET MCP request");
         res.writeHead(405).end(
@@ -109,7 +111,7 @@ export function initializeMcpApiHandler(
         body: bodyContent,
       });
       await statelessTransport.handleRequest(incomingRequest, res);
-    } else if (url.pathname === "/sse") {
+    } else if (url.pathname === sseEndpoint) {
       console.log("Got new SSE connection");
 
       const transport = new SSEServerTransport("/message", res);
