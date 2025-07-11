@@ -1,4 +1,4 @@
-import { createMcpHandler } from "@vercel/mcp-adapter";
+import { createMcpHandler } from "mcp-handler";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 
